@@ -8,6 +8,7 @@ use Derafu\Content\Contract\ContentServiceInterface;
 use Derafu\ContentBundle\ContentBundle;
 use Derafu\Routing\Contract\UrlGeneratorInterface;
 use Derafu\TranslationBundle\TranslationBundle;
+use Derafu\TwigComponentsBundle\TwigComponentsBundle;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\Config\Loader\LoaderInterface;
@@ -31,6 +32,7 @@ final class Kernel extends BaseKernel
         yield new TwigBundle();
         yield new TwigComponentBundle();
         yield new TranslationBundle();
+        yield new TwigComponentsBundle();
         yield new ContentBundle();
     }
 

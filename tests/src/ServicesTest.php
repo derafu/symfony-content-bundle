@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Derafu\TestsContentBundle;
 
+use Composer\InstalledVersions;
 use Derafu\Content\Contract\ContentServiceInterface;
 use Derafu\Content\Plugin\Academy\AcademyController;
 use Derafu\Content\Plugin\Api\ApiController;
@@ -34,8 +35,11 @@ use Derafu\Routing\Contract\UrlGeneratorInterface;
 use Derafu\TestsContentBundle\Fixture\Kernel;
 use Derafu\TestsContentBundle\Fixture\RoutePagesPlugin;
 use Derafu\Translation\Exception\Core\TranslatableLogicException;
+use Derafu\TwigComponentsBundle\TwigComponentsBundle;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\PreserveGlobalState;
+use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Filesystem\Filesystem;
@@ -43,6 +47,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Contracts\Translation\TranslatorInterface;
 use Twig\Environment;
+use Twig\Loader\FilesystemLoader;
 
 #[CoversClass(ContentBundle::class)]
 #[CoversClass(McpDependencySubscriber::class)]
@@ -365,5 +370,35 @@ final class ServicesTest extends TestCase
         $pdf = $this->kernel->handle(Request::create('/knowledge/docs/api.pdf'));
         self::assertSame(200, $pdf->getStatusCode(), $pdf->getContent() ?: '');
         self::assertStringStartsWith('%PDF-', $pdf->getContent() ?: '');
+    }
+
+    public function testComponentsAreRegisteredByTheirBundleWithoutDuplicateTemplatePaths(): void
+    {
+        $this->kernel->boot();
+        self::assertInstanceOf(TwigComponentsBundle::class, $this->kernel->getBundle('TwigComponentsBundle'));
+        $twig = $this->kernel->getContainer()->get('test.twig');
+        self::assertInstanceOf(Environment::class, $twig);
+        $loader = $twig->getLoader();
+        self::assertInstanceOf(FilesystemLoader::class, $loader);
+        $componentTemplates = realpath(InstalledVersions::getInstallPath('derafu/twig-components') . '/resources/templates');
+        self::assertNotFalse($componentTemplates);
+        $paths = array_filter($loader->getPaths(), static fn (string $path): bool => realpath($path) === $componentTemplates);
+        self::assertCount(1, $paths);
+    }
+
+    // Twig uses project-relative cache keys. Isolate this application's
+    // alternative page template from other fixture kernels in the same process.
+    #[RunInSeparateProcess]
+    #[PreserveGlobalState(false)]
+    public function testContentPagesUseApplicationOverridesOfComponentsFromTheNewBundle(): void
+    {
+        $filesystem = new Filesystem();
+        $filesystem->mkdir([$this->project . '/templates/components', $this->project . '/templates/pages']);
+        file_put_contents($this->project . '/templates/components/block-alert.html.twig', '<aside class="application-alert">{{ this.content }}</aside>');
+        file_put_contents($this->project . '/templates/pages/show.html.twig', "{% extends 'layouts/default.html.twig' %}{% block content %}<twig:block-alert :content=\"page.title\" />{% endblock %}");
+        $response = $this->kernel->handle(Request::create('/knowledge/pages/about'));
+        self::assertSame(200, $response->getStatusCode(), $response->getContent() ?: '');
+        self::assertStringContainsString('Application layout', $response->getContent() ?: '');
+        self::assertStringContainsString('<aside class="application-alert">About the application</aside>', $response->getContent() ?: '');
     }
 }

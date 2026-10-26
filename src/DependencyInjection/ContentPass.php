@@ -27,9 +27,7 @@ final class ContentPass implements CompilerPassInterface
         // Append package fallbacks after Symfony has registered application
         // paths, so applications can override any Content template.
         $loader = $container->getDefinition('twig.loader.native_filesystem');
-        foreach (['derafu/content', 'derafu/twig-components'] as $package) {
-            $loader->addMethodCall('addPath', [InstalledVersions::getInstallPath($package) . '/resources/templates']);
-        }
+        $loader->addMethodCall('addPath', [InstalledVersions::getInstallPath('derafu/content') . '/resources/templates']);
         $loader->addMethodCall('addPath', [__DIR__ . '/../../templates']);
         $container->getDefinition('twig')->addMethodCall('addGlobal', ['derafu_content_layout', '%derafu_content.layout%']);
         foreach ($container->getDefinitions() as $id => $service) {

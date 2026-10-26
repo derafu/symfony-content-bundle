@@ -41,7 +41,7 @@ final class ContentBundle extends AbstractBundle
     /** @param array<string, mixed> $config */
     public function loadExtension(array $config, ContainerConfigurator $configurator, ContainerBuilder $container): void
     {
-        foreach (['content', 'twig', 'twig-components', 'renderer'] as $package) {
+        foreach (['content', 'twig', 'renderer'] as $package) {
             $configurator->import(InstalledVersions::getInstallPath('derafu/' . $package) . '/resources/config/' . $package . '-services.yaml');
         }
         $reader = new ArrayReader($config);
