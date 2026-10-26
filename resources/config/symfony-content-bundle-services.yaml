@@ -1,0 +1,49 @@
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Derafu\Routing\Contract\UrlGeneratorInterface:
+        alias: Derafu\ContentBundle\Routing\UrlGenerator
+    Derafu\Routing\Contract\RouteRegistrarInterface:
+        alias: Derafu\ContentBundle\Routing\RouteRegistrar
+    derafu_content.cache:
+        alias: cache.app
+
+    Derafu\ContentBundle\Routing\UrlGenerator:
+        arguments:
+            $generator: '@router'
+            $context: '@router.request_context'
+    Derafu\ContentBundle\Routing\RouteRegistrar: ~
+    Derafu\ContentBundle\Routing\RouteConverter: ~
+    Derafu\ContentBundle\Routing\ContentRouteLoader:
+        arguments:
+            $configuration: '%derafu.content.config%'
+            $projectDirectory: '%kernel.project_dir%'
+        tags: [routing.loader]
+
+    Derafu\ContentBundle\Http\RequestConverter: ~
+    Derafu\ContentBundle\Http\RequestValueResolver:
+        tags: [controller.argument_value_resolver]
+    Derafu\ContentBundle\Http\ContentSubscriber: ~
+    Derafu\Http\Service\ResponseNormalizer: ~
+
+    Derafu\ContentBundle\Renderer\RendererFactory: ~
+    derafu_content.renderer:
+        class: Derafu\Renderer\Renderer
+        factory: ['@Derafu\ContentBundle\Renderer\RendererFactory', create]
+        arguments: ['@twig', '%kernel.project_dir%/public']
+
+    Derafu\ContentBundle\Twig\ContentExtension:
+        tags: [twig.extension]
+    Derafu\Twig\Extension\TwigExtension:
+        tags: [twig.extension]
+    Derafu\Twig\Extension\MarkdownExtension:
+        tags: [twig.extension]
+
+    Derafu\ContentBundle\Translation\ContentBundleTranslationResourceProvider:
+        tags: [derafu_translation.resource_provider]
+    Derafu\Routing\Translation\RoutingTranslationResourceProvider:
+        tags: [derafu_translation.resource_provider]
+
+    Derafu\ContentBundle\Http\McpDependencySubscriber: ~

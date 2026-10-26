@@ -1,0 +1,7 @@
+content:
+    resource: .
+    type: derafu_content
+    prefix: /knowledge
+native:
+    path: /native
+    controller: Derafu\TestsContentBundle\Fixture\FixtureController::native

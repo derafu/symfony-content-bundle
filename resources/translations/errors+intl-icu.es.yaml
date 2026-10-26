@@ -1,0 +1,2 @@
+'Content route collection is already in progress.': 'La recopilación de rutas de contenido ya está en curso.'
+'The MCP endpoint requires mcp/sdk. Run: composer require mcp/sdk': 'El endpoint MCP requiere mcp/sdk. Ejecuta: composer require mcp/sdk'
