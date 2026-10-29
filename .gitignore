@@ -1,4 +1,5 @@
 # PHP files and directories.
+tmp/
 var/
 vendor/
 composer.lock

@@ -1,20 +1,29 @@
+# Symfony supplies routing, Twig, translation and the application cache pool.
+# The shared Renderer and its engines come from the packages' own YAML files.
 services:
     _defaults:
         autowire: true
         autoconfigure: true
+        public: false
 
     Derafu\Routing\Contract\UrlGeneratorInterface:
-        alias: Derafu\ContentBundle\Routing\UrlGenerator
-    Derafu\Routing\Contract\RouteRegistrarInterface:
-        alias: Derafu\ContentBundle\Routing\RouteRegistrar
-    derafu_content.cache:
-        alias: cache.app
-
-    Derafu\ContentBundle\Routing\UrlGenerator:
+        class: Derafu\ContentBundle\Routing\UrlGenerator
         arguments:
             $generator: '@router'
             $context: '@router.request_context'
-    Derafu\ContentBundle\Routing\RouteRegistrar: ~
+
+    Derafu\Routing\Contract\RouteRegistrarInterface:
+        class: Derafu\ContentBundle\Routing\RouteRegistrar
+
+    # Two capabilities of the same registrar: plugin registration and collection.
+    Derafu\ContentBundle\Contract\RouteCollectorInterface:
+        alias: Derafu\Routing\Contract\RouteRegistrarInterface
+
+    Psr\Cache\CacheItemPoolInterface $content:
+        alias: cache.app
+
+    # These pure conversion helpers and tagged framework entry points are
+    # registered by class; they do not introduce alternative service contracts.
     Derafu\ContentBundle\Routing\RouteConverter: ~
     Derafu\ContentBundle\Routing\ContentRouteLoader:
         arguments:
@@ -26,19 +35,25 @@ services:
     Derafu\ContentBundle\Http\RequestValueResolver:
         tags: [controller.argument_value_resolver]
     Derafu\ContentBundle\Http\ContentSubscriber: ~
-    Derafu\Http\Service\ResponseNormalizer: ~
 
-    Derafu\ContentBundle\Renderer\RendererFactory: ~
-    derafu_content.renderer:
-        class: Derafu\Renderer\Renderer
-        factory: ['@Derafu\ContentBundle\Renderer\RendererFactory', create]
-        arguments: ['@twig', '%kernel.project_dir%/public']
+    Derafu\Http\Contract\ResponseNormalizerInterface:
+        class: Derafu\Http\Service\ResponseNormalizer
+
+    Derafu\Twig\Contract\TwigServiceInterface:
+        class: Derafu\Twig\Service\TwigService
+        # Defer access while Twig is constructing its extensions. Rendering
+        # still uses the same native environment and the shared Renderer.
+        lazy: true
+        arguments:
+            $twig: '@twig'
 
     Derafu\ContentBundle\Twig\ContentExtension:
         tags: [twig.extension]
     Derafu\Twig\Extension\TwigExtension:
         tags: [twig.extension]
     Derafu\Twig\Extension\MarkdownExtension:
+        arguments:
+            $markdownService: '@Derafu\Markdown\Contract\MarkdownServiceInterface'
         tags: [twig.extension]
 
     Derafu\ContentBundle\Translation\ContentBundleTranslationResourceProvider:

@@ -24,6 +24,11 @@ final class ContentExtension extends AbstractExtension
     {
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @return list<TwigFunction>
+     */
     public function getFunctions(): array
     {
         return [new TwigFunction('is_active_path', $this->isActivePath(...))];

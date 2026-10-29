@@ -18,13 +18,18 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Controller\ValueResolverInterface;
 use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 
+/** Resolves Derafu request arguments only for routes imported by Content. */
 final class RequestValueResolver implements ValueResolverInterface
 {
     public function __construct(private readonly RequestConverter $converter)
     {
     }
 
-    /** @return iterable<ContentRequest> */
+    /**
+     * {@inheritDoc}
+     *
+     * @return iterable<ContentRequest>
+     */
     public function resolve(Request $request, ArgumentMetadata $argument): iterable
     {
         if ($request->attributes->get('_derafu_content') === true

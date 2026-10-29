@@ -13,18 +13,20 @@ declare(strict_types=1);
 namespace Derafu\ContentBundle\Routing;
 
 use Closure;
+use Derafu\ContentBundle\Contract\RouteCollectorInterface;
 use Derafu\Routing\Collection;
-use Derafu\Routing\Contract\RouteInterface;
 use Derafu\Routing\Contract\RouteRegistrarInterface;
 use Derafu\Routing\ValueObject\Route;
 use Derafu\Translation\Exception\Core\TranslatableLogicException;
 
 /** Collects plugin definitions during routing compilation, never during requests. */
-final class RouteRegistrar implements RouteRegistrarInterface
+final class RouteRegistrar implements RouteRegistrarInterface, RouteCollectorInterface
 {
     private ?Collection $collection = null;
 
-    /** @return array<RouteInterface> */
+    /**
+     * {@inheritDoc}
+     */
     public function collect(callable $initialize): array
     {
         if ($this->collection !== null) {
@@ -40,6 +42,9 @@ final class RouteRegistrar implements RouteRegistrarInterface
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function addRoute(string $name, string $path, string|array|Closure $handler, array $defaults = [], array $methods = [], array $roles = []): static
     {
         // Plugin initialization is replayed when serving content. Only the route

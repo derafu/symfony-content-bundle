@@ -20,6 +20,8 @@ use Derafu\Content\ContentService;
 use Derafu\Content\Contract\ContentLoaderInterface;
 use Derafu\Content\Contract\ContentPluginInterface;
 use Derafu\Content\PluginLoader;
+use Derafu\ContentBundle\Contract\RouteCollectorInterface;
+use Derafu\Routing\Contract\RouteRegistrarInterface;
 use Derafu\Routing\RouteCollectionFactory;
 use Symfony\Component\Cache\Adapter\NullAdapter;
 use Symfony\Component\Config\Loader\Loader;
@@ -35,7 +37,8 @@ final class ContentRouteLoader extends Loader
     /** @param array<string, mixed> $configuration */
     public function __construct(
         private readonly ContentLoaderInterface $contentLoader,
-        private readonly RouteRegistrar $registrar,
+        private readonly RouteRegistrarInterface $registrar,
+        private readonly RouteCollectorInterface $collector,
         private readonly RouteConverter $converter,
         private readonly array $configuration,
         private readonly string $projectDirectory,
@@ -43,11 +46,17 @@ final class ContentRouteLoader extends Loader
         parent::__construct();
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function supports(mixed $resource, ?string $type = null): bool
     {
         return $type === 'derafu_content';
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function load(mixed $resource, ?string $type = null): RouteCollection
     {
         $package = InstalledVersions::getInstallPath('derafu/content');
@@ -64,7 +73,7 @@ final class ContentRouteLoader extends Loader
         $config = new ContentConfig(array_replace($this->configuration, ['cache' => ['enabled' => false]]));
         $context = new ContentContext($config, new NullAdapter());
         $content = new ContentService($context, new PluginLoader($this->contentLoader, $this->registrar));
-        foreach ($this->registrar->collect($content->plugins(...)) as $route) {
+        foreach ($this->collector->collect($content->plugins(...)) as $route) {
             $collection->add($route->getName(), $this->converter->convert($route));
         }
         $paths = [$this->projectDirectory . '/resources/content', $package . '/src'];

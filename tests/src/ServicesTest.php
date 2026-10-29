@@ -17,12 +17,12 @@ use Derafu\Content\Plugin\Search\SearchController;
 use Derafu\Content\Plugin\Sitemap\SitemapController;
 use Derafu\Content\Plugin\Storage\StorageController;
 use Derafu\ContentBundle\ContentBundle;
+use Derafu\ContentBundle\Contract\RouteCollectorInterface;
 use Derafu\ContentBundle\DependencyInjection\ContentPass;
 use Derafu\ContentBundle\Http\ContentSubscriber;
 use Derafu\ContentBundle\Http\McpDependencySubscriber;
 use Derafu\ContentBundle\Http\RequestConverter;
 use Derafu\ContentBundle\Http\RequestValueResolver;
-use Derafu\ContentBundle\Renderer\RendererFactory;
 use Derafu\ContentBundle\Routing\ContentRouteLoader;
 use Derafu\ContentBundle\Routing\RouteConverter;
 use Derafu\ContentBundle\Routing\RouteRegistrar;
@@ -31,7 +31,9 @@ use Derafu\ContentBundle\Translation\ContentBundleTranslationResourceProvider;
 use Derafu\ContentBundle\Twig\ContentExtension;
 use Derafu\Renderer\Contract\RendererInterface;
 use Derafu\Renderer\Engine\Html\TwigHtmlEngine;
+use Derafu\Routing\Contract\RouteRegistrarInterface;
 use Derafu\Routing\Contract\UrlGeneratorInterface;
+use Derafu\TestsContentBundle\Fixture\FixtureController;
 use Derafu\TestsContentBundle\Fixture\Kernel;
 use Derafu\TestsContentBundle\Fixture\RoutePagesPlugin;
 use Derafu\Translation\Exception\Core\TranslatableLogicException;
@@ -41,6 +43,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\PreserveGlobalState;
 use PHPUnit\Framework\Attributes\RunInSeparateProcess;
 use PHPUnit\Framework\TestCase;
+use Psr\Cache\CacheItemPoolInterface;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\Request;
@@ -56,7 +59,6 @@ use Twig\Loader\FilesystemLoader;
 #[CoversClass(ContentSubscriber::class)]
 #[CoversClass(RequestConverter::class)]
 #[CoversClass(RequestValueResolver::class)]
-#[CoversClass(RendererFactory::class)]
 #[CoversClass(ContentRouteLoader::class)]
 #[CoversClass(RouteConverter::class)]
 #[CoversClass(RouteRegistrar::class)]
@@ -285,12 +287,14 @@ final class ServicesTest extends TestCase
         foreach ([AcademyController::class, ApiController::class, BlogController::class, DocsController::class, FaqController::class, McpController::class, PagesController::class, SearchController::class, SitemapController::class, StorageController::class] as $class) {
             self::assertInstanceOf($class, $container->get($class));
         }
-        $renderer = $container->get('test.derafu_content.renderer');
+        $renderer = $container->get('test.renderer');
         self::assertInstanceOf(RendererInterface::class, $renderer);
         $engine = $renderer->getEngine('twig');
         self::assertInstanceOf(TwigHtmlEngine::class, $engine);
         self::assertSame($container->get('test.twig'), $engine->getTwig());
-        self::assertNotSame($renderer, $container->get('test.app.renderer'));
+        $controller = $container->get(FixtureController::class);
+        self::assertInstanceOf(FixtureController::class, $controller);
+        self::assertSame($renderer, $controller->getRenderer());
         self::assertSame('Fixture site', $content->context()->config()->title());
     }
 
@@ -400,5 +404,52 @@ final class ServicesTest extends TestCase
         self::assertSame(200, $response->getStatusCode(), $response->getContent() ?: '');
         self::assertStringContainsString('Application layout', $response->getContent() ?: '');
         self::assertStringContainsString('<aside class="application-alert">About the application</aside>', $response->getContent() ?: '');
+    }
+
+    public function testContentControllersUseApplicationContributionsToTheSharedRenderer(): void
+    {
+        file_put_contents($this->project . '/templates/application-renderer-layout.html.twig', <<<'TWIG'
+{% extends 'base.html.twig' %}{% block stylesheets %}<meta name="application-policy" content="{{ application_banner }}">{{ parent() }}{% endblock %}
+TWIG);
+        $this->kernel->shutdown();
+        $this->kernel = new Kernel($this->project, [
+            'layout' => 'application-renderer-layout.html.twig',
+            'content' => ['cache' => ['enabled' => false], 'plugins' => ['pages' => null]],
+        ], applicationRenderer: true);
+        $response = $this->kernel->handle(Request::create('/knowledge/pages/about'));
+        self::assertSame(200, $response->getStatusCode(), $response->getContent() ?: '');
+        self::assertStringContainsString('<meta name="application-policy" content="Application rendering policy">', $response->getContent() ?: '');
+        self::assertStringContainsString('About the application', $response->getContent() ?: '');
+    }
+
+    public function testContentContextUsesTheExistingSymfonyApplicationCachePool(): void
+    {
+        $this->kernel->shutdown();
+        $this->kernel = new Kernel($this->project, ['content' => [
+            'cache' => ['enabled' => true],
+            'plugins' => ['pages' => null],
+        ]]);
+        $this->kernel->boot();
+        $container = $this->kernel->getContainer();
+        $content = $container->get('test.' . ContentServiceInterface::class);
+        self::assertInstanceOf(ContentServiceInterface::class, $content);
+        $cache = $container->get('test.cache_app');
+        self::assertInstanceOf(CacheItemPoolInterface::class, $cache);
+        self::assertSame($cache, $content->context()->cache());
+    }
+
+    public function testRegistrationAndCollectionShareTheSameService(): void
+    {
+        $this->kernel->boot();
+        $container = $this->kernel->getContainer();
+        $registrar = $container->get('test.route_registrar');
+        $collector = $container->get('test.route_collector');
+        self::assertInstanceOf(RouteRegistrarInterface::class, $registrar);
+        self::assertInstanceOf(RouteCollectorInterface::class, $collector);
+        self::assertSame($registrar, $collector);
+        $routes = $collector->collect(static fn () => $registrar->addRoute('application_route', '/application', FixtureController::class . '::native'));
+        self::assertCount(1, $routes);
+        self::assertSame('application_route', $routes[0]->getName());
+        self::assertSame('/application', $routes[0]->getPath());
     }
 }

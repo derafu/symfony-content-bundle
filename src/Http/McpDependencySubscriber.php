@@ -27,6 +27,9 @@ final class McpDependencySubscriber implements EventSubscriberInterface
     {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public static function getSubscribedEvents(): array
     {
         return [KernelEvents::CONTROLLER => 'onController'];

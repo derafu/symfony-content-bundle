@@ -1,0 +1,5 @@
+services:
+    Derafu\TestsContentBundle\Fixture\ApplicationTwigEngine:
+        autowire: true
+        tags:
+            - { name: derafu_renderer.engine, priority: 100 }

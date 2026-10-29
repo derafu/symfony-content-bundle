@@ -14,8 +14,12 @@ namespace Derafu\ContentBundle\Translation;
 
 use Derafu\Translation\Contract\TranslationResourceProviderInterface;
 
+/** Supplies the bundle's bridge-error catalogues to the host translator. */
 final class ContentBundleTranslationResourceProvider implements TranslationResourceProviderInterface
 {
+    /**
+     * {@inheritDoc}
+     */
     public function getDirectories(): iterable
     {
         return [__DIR__ . '/../../resources/translations'];

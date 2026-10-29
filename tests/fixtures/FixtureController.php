@@ -5,11 +5,22 @@ declare(strict_types=1);
 namespace Derafu\TestsContentBundle\Fixture;
 
 use Derafu\Http\Request;
+use Derafu\Renderer\Contract\RendererInterface;
 use Nyholm\Psr7\Response;
 use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
+/** A native application controller consuming the shared renderer. */
 final class FixtureController
 {
+    public function __construct(private readonly RendererInterface $renderer)
+    {
+    }
+
+    public function getRenderer(): RendererInterface
+    {
+        return $this->renderer;
+    }
+
     public function native(): SymfonyResponse
     {
         return new SymfonyResponse('Native response', 202);

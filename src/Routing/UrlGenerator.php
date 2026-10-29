@@ -30,6 +30,9 @@ final class UrlGenerator implements UrlGeneratorInterface
     ) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function generate(string $name, array $parameters = [], UrlReferenceType $referenceType = UrlReferenceType::ABSOLUTE_PATH): string
     {
         try {
@@ -39,6 +42,9 @@ final class UrlGenerator implements UrlGeneratorInterface
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function getContext(): RequestContextInterface
     {
         return new RequestContext(
@@ -53,6 +59,9 @@ final class UrlGenerator implements UrlGeneratorInterface
         );
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public function setContext(RequestContextInterface $context): static
     {
         $this->context->setBaseUrl($context->getBaseUrl());

@@ -1,0 +1,35 @@
+services:
+    test.twig:
+        alias: twig
+        public: true
+    test.router:
+        alias: router
+        public: true
+    test.translator:
+        alias: translator
+        public: true
+    test.Derafu\Content\Contract\ContentServiceInterface:
+        alias: Derafu\Content\Contract\ContentServiceInterface
+        public: true
+    test.Derafu\Routing\Contract\UrlGeneratorInterface:
+        alias: Derafu\Routing\Contract\UrlGeneratorInterface
+        public: true
+    test.renderer:
+        alias: Derafu\Renderer\Contract\RendererInterface
+        public: true
+    test.cache_app:
+        alias: cache.app
+        public: true
+    test.route_registrar:
+        alias: Derafu\Routing\Contract\RouteRegistrarInterface
+        public: true
+    test.route_collector:
+        alias: Derafu\ContentBundle\Contract\RouteCollectorInterface
+        public: true
+
+    logger:
+        class: Psr\Log\NullLogger
+
+    Derafu\TestsContentBundle\Fixture\FixtureController:
+        autowire: true
+        public: true

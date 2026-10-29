@@ -14,7 +14,7 @@ namespace Derafu\ContentBundle\Http;
 
 use Derafu\Content\Plugin\Search\SearchController;
 use Derafu\Http\Contract\HttpExceptionInterface;
-use Derafu\Http\Service\ResponseNormalizer;
+use Derafu\Http\Contract\ResponseNormalizerInterface;
 use InvalidArgumentException;
 use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -29,11 +29,14 @@ final class ContentSubscriber implements EventSubscriberInterface
 {
     public function __construct(
         private readonly RequestConverter $converter,
-        private readonly ResponseNormalizer $normalizer,
+        private readonly ResponseNormalizerInterface $normalizer,
         private readonly TranslatorInterface $translator,
     ) {
     }
 
+    /**
+     * {@inheritDoc}
+     */
     public static function getSubscribedEvents(): array
     {
         return [KernelEvents::VIEW => 'onView', KernelEvents::EXCEPTION => ['onException', 64]];
